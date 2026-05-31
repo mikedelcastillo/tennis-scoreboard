@@ -5,7 +5,7 @@ import App from './App'
 import { createInitialState, applyPoint } from './scoring'
 import type { PlayerIndex } from './scoring'
 
-const STORAGE_KEY = 'tennis-scoreboard:v1'
+const STORAGE_KEY = 'tennis-scoreboard:v2'
 const SETTINGS_KEY = 'tennis-scoreboard:settings:v1'
 
 // --- DOM helpers ------------------------------------------------------------
@@ -215,5 +215,53 @@ describe('settings: theme', () => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ theme: 'bogus' }))
     render(<App />)
     expect(theme()).toBe('rg')
+  })
+})
+
+describe('settings: scoring config', () => {
+  it('applies a new scoring config on the next New match, not the current one', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const { container } = render(<App />)
+
+    // Win set 1 (6-0) under the default best-of-3 rules.
+    for (let game = 0; game < 6; game++) clickScore(container, 0, 4)
+    expect(cell(container, 0, 'sets')).toBe('1')
+
+    // Switch to a single set (Best of 1) mid-match.
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    fireEvent.click(screen.getByRole('button', { name: '1' }))
+    fireEvent.click(screen.getByRole('button', { name: /Close settings/ }))
+
+    // The running match keeps best-of-3 — one set is not enough to win.
+    expect(screen.queryByText(/wins the match/i)).not.toBeInTheDocument()
+    expect(scoreButton(container, 0)).not.toBeDisabled()
+
+    // New match now uses best-of-1: a single set wins it.
+    fireEvent.click(screen.getByRole('button', { name: /New match/ }))
+    for (let game = 0; game < 6; game++) clickScore(container, 0, 4)
+    expect(screen.getByText(/wins the match/i)).toBeInTheDocument()
+  })
+
+  it('shows a draw and disables scoring for a barangay single-set tie', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const { container } = render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    fireEvent.click(screen.getByRole('button', { name: '1' })) // Best of 1
+    // Games per set 6 → 2 (so the set is drawn at 1-1).
+    for (let n = 0; n < 4; n++)
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Decrease Games per set' }),
+      )
+    fireEvent.click(screen.getByRole('switch', { name: /Barangay draw/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Close settings/ }))
+
+    fireEvent.click(screen.getByRole('button', { name: /New match/ }))
+    clickScore(container, 0, 4) // 1-0
+    clickScore(container, 1, 4) // 1-1 → draw
+
+    expect(screen.getByText(/drawn/i)).toBeInTheDocument()
+    expect(scoreButton(container, 0)).toBeDisabled()
+    expect(scoreButton(container, 1)).toBeDisabled()
   })
 })

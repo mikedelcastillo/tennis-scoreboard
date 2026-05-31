@@ -342,3 +342,118 @@ button {
   font-size: 1.2em;
   flex: none;
 }
+
+/* ---- Scoring controls ---- */
+.set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  min-height: 44px;
+}
+.set-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+}
+
+.segmented {
+  display: inline-flex;
+  flex: none;
+  background: var(--btn-secondary-bg);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.segment {
+  background: none;
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-height: 40px;
+  border-radius: 0;
+}
+.segment.selected {
+  background: var(--accent);
+  color: var(--btn-text, #fff);
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 4px;
+}
+.step-btn {
+  background: var(--btn-secondary-bg);
+  color: var(--text);
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.step-btn:disabled {
+  opacity: 0.35;
+}
+.step-value {
+  min-width: 2ch;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  background: none;
+  color: var(--text);
+  padding: 8px 0;
+  min-height: 44px;
+  text-align: left;
+}
+.toggle-row:disabled {
+  opacity: 0.4;
+}
+.toggle-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+}
+.toggle-switch {
+  flex: none;
+  width: 44px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--btn-secondary-bg);
+  border: 1px solid var(--line);
+  position: relative;
+  transition: background 0.15s ease;
+}
+.toggle-row.on .toggle-switch {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s ease;
+}
+.toggle-row.on .toggle-knob {
+  transform: translateX(18px);
+}
+
+.settings-note {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}

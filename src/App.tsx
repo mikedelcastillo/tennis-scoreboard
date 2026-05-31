@@ -6,6 +6,7 @@ import { useMatch } from './useMatch'
 import { useSettings } from './useSettings'
 
 export default function App() {
+  const { settings, setTheme, setScoring } = useSettings()
   const {
     state,
     canUndo,
@@ -15,9 +16,8 @@ export default function App() {
     redo,
     reset,
     editName,
-  } = useMatch()
+  } = useMatch(settings.scoring)
 
-  const { settings, setTheme } = useSettings()
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const handleReset = () => {
@@ -33,9 +33,11 @@ export default function App() {
       {state.winner !== null && (
         <div className="winner-banner">
           <span className="material-symbols-outlined" aria-hidden="true">
-            emoji_events
+            {state.winner === 'draw' ? 'handshake' : 'emoji_events'}
           </span>
-          {state.players[state.winner]} wins the match
+          {state.winner === 'draw'
+            ? 'Match drawn'
+            : `${state.players[state.winner]} wins the match`}
         </div>
       )}
 
@@ -55,6 +57,8 @@ export default function App() {
         onClose={() => setSettingsOpen(false)}
         theme={settings.theme}
         onSelectTheme={setTheme}
+        scoring={settings.scoring}
+        onChangeScoring={setScoring}
       />
     </div>
   )
