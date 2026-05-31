@@ -5,12 +5,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev      # Vite dev server
-npm run build    # production build to dist/
-npm run preview  # serve the production build
+npm run dev        # Vite dev server
+npm run build      # production build to dist/
+npm run preview    # serve the production build
+npm run test       # Vitest: unit (scoring.js) + integration (App) — run once
+npm run test:watch # Vitest in watch mode
+npm run test:e2e   # Playwright E2E (auto-starts the dev server)
 ```
 
-There is no test runner, linter, or formatter configured — `dev`, `build`, and `preview` are the only scripts.
+There is no linter or formatter configured.
+
+## Testing
+
+The suite is a pyramid — unit (`src/scoring.test.js`, the pure engine), integration (`src/App.test.jsx`, the React app via Testing Library + jsdom), and E2E (`e2e/scoreboard.spec.js`, Playwright) reserved for things only a real browser can test (true page-reload persistence, real-browser render). Vitest reads its config from the `test` block in `vite.config.js`; `e2e/` is excluded from Vitest so Playwright owns it.
+
+Two rules:
+
+- **Always add tests for new features and bug fixes.** Put logic-only cases as unit tests against `scoring.js`, anything involving React state/persistence/UI as integration tests against `App`, and use E2E only when a real browser is the only honest way to cover it. A bug fix should ship with a regression test that fails on the old code.
+- **Always run `npm run test` before pushing to `main`, and it must pass.** Run `npm run test:e2e` too when the change touches the UI, persistence, or build. Never push with failing or skipped tests.
 
 ## Architecture
 
