@@ -1,0 +1,36 @@
+/* ============================================================
+   Design tokens — change the look of the whole app from here.
+   ============================================================ */
+:root {
+  /* Surfaces */
+  --bg: #0b3d2e;            /* deep tennis-court green */
+  --surface: #0f4a38;       /* scoreboard panel */
+  --surface-alt: #11543f;   /* alternating row */
+  --line: rgba(255, 255, 255, 0.08);
+
+  /* Text */
+  --text: #f4f8f5;
+  --text-dim: rgba(244, 248, 245, 0.55);
+
+  /* Accents */
+  --accent: #d9ff3c;        /* tennis-ball yellow-green */
+  --accent-p1: #ffd23c;
+  --accent-p2: #4ec3ff;
+  --winner: #d9ff3c;
+
+  /* Buttons */
+  --btn-bg: #157a5a;
+  --btn-bg-active: #1c986f;
+  --btn-text: #ffffff;
+  --btn-secondary-bg: rgba(255, 255, 255, 0.08);
+  --btn-secondary-text: var(--text);
+
+  /* Shape & type */
+  --radius: 16px;
+  --radius-sm: 10px;
+  --gap: 10px;
+  --pad: 14px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif;
+  --font-score: 'Segoe UI', system-ui, sans-serif;
+}
