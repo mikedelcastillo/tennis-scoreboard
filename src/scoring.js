@@ -109,13 +109,14 @@ function winGame(state, i) {
 export function applyPoint(state, i) {
   if (state.winner !== null) return state
 
+  const { winBy } = state.config
   const points = [...state.points]
   points[i] += 1
   const opp = other(i)
   const next = { ...state, points }
 
   if (state.inTiebreak) {
-    const { tiebreakTo, winBy } = state.config
+    const { tiebreakTo } = state.config
     if (points[i] >= tiebreakTo && points[i] - points[opp] >= winBy) {
       // Tiebreak winner takes the set 7-6.
       const games = [...state.games]
