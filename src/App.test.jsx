@@ -5,6 +5,7 @@ import App from './App.jsx'
 import { createInitialState, applyPoint } from './scoring.js'
 
 const STORAGE_KEY = 'tennis-scoreboard:v1'
+const SETTINGS_KEY = 'tennis-scoreboard:settings:v1'
 
 // --- DOM helpers ------------------------------------------------------------
 
@@ -151,5 +152,62 @@ describe('match over', () => {
     expect(screen.getByText(/wins the match/)).toBeInTheDocument()
     expect(scoreButton(container, 0)).toBeDisabled()
     expect(scoreButton(container, 1)).toBeDisabled()
+  })
+})
+
+describe('settings: theme', () => {
+  const theme = () => document.documentElement.getAttribute('data-theme')
+
+  it('applies the default theme (rg) on a fresh load', () => {
+    render(<App />)
+    expect(theme()).toBe('rg')
+  })
+
+  it('opens the settings modal from the cog and closes it', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Close settings/ }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('closes the modal on Escape', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('selecting a theme applies it and persists across remount', async () => {
+    const user = userEvent.setup()
+    const first = render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    await user.click(screen.getByRole('button', { name: 'Wimbledon' }))
+    expect(theme()).toBe('wimbledon')
+    first.unmount()
+
+    // Wipe the live attribute so the remount must rehydrate from storage.
+    document.documentElement.removeAttribute('data-theme')
+    render(<App />)
+    expect(theme()).toBe('wimbledon')
+  })
+
+  it('falls back to the default theme when settings storage is corrupt', () => {
+    localStorage.setItem(SETTINGS_KEY, 'not-valid-json{')
+    render(<App />)
+    expect(theme()).toBe('rg')
+  })
+
+  it('coerces an unknown stored theme back to the default', () => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ theme: 'bogus' }))
+    render(<App />)
+    expect(theme()).toBe('rg')
   })
 })

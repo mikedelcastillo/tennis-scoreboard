@@ -1,36 +1,151 @@
 /* ============================================================
    Design tokens — change the look of the whole app from here.
+
+   Shape & type tokens are shared across every theme (:root).
+   Color tokens are overridden per tournament theme via the
+   [data-theme="…"] attribute on <html>; see useSettings.js, which
+   toggles that attribute. The default theme is set statically in
+   index.html (data-theme="rg") to avoid a flash before JS runs.
    ============================================================ */
 :root {
-  /* Surfaces */
-  --bg: #0b3d2e;            /* deep tennis-court green */
-  --surface: #0f4a38;       /* scoreboard panel */
-  --surface-alt: #11543f;   /* alternating row */
-  --line: rgba(255, 255, 255, 0.08);
-
-  /* Text */
-  --text: #f4f8f5;
-  --text-dim: rgba(244, 248, 245, 0.55);
-
-  /* Accents */
-  --accent: #d9ff3c;        /* tennis-ball yellow-green */
-  --accent-p1: #ffd23c;
-  --accent-p2: #4ec3ff;
-  --winner: #d9ff3c;
-
-  /* Buttons */
-  --btn-bg: #157a5a;
-  --btn-bg-active: #1c986f;
-  --btn-text: #ffffff;
-  --btn-secondary-bg: rgba(255, 255, 255, 0.08);
-  --btn-secondary-text: var(--text);
-
-  /* Shape & type */
-  --radius: 16px;
-  --radius-sm: 10px;
+  /* Shape & type — sharper corners for a cleaner, crisper look. */
+  --radius: 4px;
+  --radius-sm: 2px;
   --gap: 10px;
   --pad: 14px;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
     Arial, sans-serif;
   --font-score: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ---- Roland Garros (default): terre battue clay + court green ---- */
+[data-theme='rg'] {
+  --bg: #7c3a1d;
+  --surface: #8a4322;
+  --surface-alt: #934826;
+  --line: rgba(255, 255, 255, 0.1);
+
+  --text: #f6efe4;
+  --text-dim: rgba(246, 239, 228, 0.58);
+
+  --accent: #f2c14e;
+  --accent-p1: #e8a13c;
+  --accent-p2: #2f9f6a;
+  --winner: #f2c14e;
+
+  --btn-bg: #1f6b3d;
+  --btn-bg-active: #258049;
+  --btn-text: #ffffff;
+  --btn-secondary-bg: rgba(255, 255, 255, 0.1);
+  --btn-secondary-text: var(--text);
+}
+
+/* ---- Australian Open: navy court + bright AO blue ---- */
+[data-theme='ao'] {
+  --bg: #0a2540;
+  --surface: #123a63;
+  --surface-alt: #16456f;
+  --line: rgba(255, 255, 255, 0.1);
+
+  --text: #eef5fb;
+  --text-dim: rgba(238, 245, 251, 0.58);
+
+  --accent: #2ea3f2;
+  --accent-p1: #ffd23c;
+  --accent-p2: #4ec3ff;
+  --winner: #2ea3f2;
+
+  --btn-bg: #1d6fb8;
+  --btn-bg-active: #2588d8;
+  --btn-text: #ffffff;
+  --btn-secondary-bg: rgba(255, 255, 255, 0.1);
+  --btn-secondary-text: var(--text);
+}
+
+/* ---- US Open: deep navy + signature yellow ---- */
+[data-theme='usopen'] {
+  --bg: #10243e;
+  --surface: #1b3a5f;
+  --surface-alt: #21456e;
+  --line: rgba(255, 255, 255, 0.1);
+
+  --text: #f1f5fa;
+  --text-dim: rgba(241, 245, 250, 0.58);
+
+  --accent: #ffd400;
+  --accent-p1: #ffd400;
+  --accent-p2: #5aa0e6;
+  --winner: #ffd400;
+
+  --btn-bg: #15467a;
+  --btn-bg-active: #1c5896;
+  --btn-text: #ffffff;
+  --btn-secondary-bg: rgba(255, 255, 255, 0.1);
+  --btn-secondary-text: var(--text);
+}
+
+/* ---- Wimbledon: grass green + heritage purple ---- */
+[data-theme='wimbledon'] {
+  --bg: #00492f;
+  --surface: #015c3c;
+  --surface-alt: #066844;
+  --line: rgba(255, 255, 255, 0.1);
+
+  --text: #f3f7f4;
+  --text-dim: rgba(243, 247, 244, 0.58);
+
+  --accent: #caa54a;
+  --accent-p1: #caa54a;
+  --accent-p2: #7a4fb0;
+  --winner: #caa54a;
+
+  --btn-bg: #52297a;
+  --btn-bg-active: #653497;
+  --btn-text: #ffffff;
+  --btn-secondary-bg: rgba(255, 255, 255, 0.1);
+  --btn-secondary-text: var(--text);
+}
+
+/* ---- WTA: violet + magenta ---- */
+[data-theme='wta'] {
+  --bg: #3a1a5c;
+  --surface: #4a2470;
+  --surface-alt: #552a7f;
+  --line: rgba(255, 255, 255, 0.1);
+
+  --text: #f6f0fb;
+  --text-dim: rgba(246, 240, 251, 0.58);
+
+  --accent: #e6007e;
+  --accent-p1: #e6007e;
+  --accent-p2: #b98cff;
+  --winner: #e6007e;
+
+  --btn-bg: #8a2bbf;
+  --btn-bg-active: #a13ad9;
+  --btn-text: #ffffff;
+  --btn-secondary-bg: rgba(255, 255, 255, 0.1);
+  --btn-secondary-text: var(--text);
+}
+
+/* ---- ATP: near-black navy + vivid ATP blue ---- */
+[data-theme='atp'] {
+  --bg: #06122b;
+  --surface: #0e2a52;
+  --surface-alt: #133564;
+  --line: rgba(255, 255, 255, 0.1);
+
+  --text: #eef3fb;
+  --text-dim: rgba(238, 243, 251, 0.58);
+
+  --accent: #0091ff;
+  --accent-p1: #0091ff;
+  --accent-p2: #9fd0ff;
+  --winner: #0091ff;
+
+  --btn-bg: #11498f;
+  --btn-bg-active: #185db4;
+  --btn-text: #ffffff;
+  --btn-secondary-bg: rgba(255, 255, 255, 0.1);
+  --btn-secondary-text: var(--text);
 }

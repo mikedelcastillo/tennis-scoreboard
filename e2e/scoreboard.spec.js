@@ -40,3 +40,17 @@ test('reaching a game point does not blank the screen', async ({ page }) => {
   await expect(points(page, 0)).toHaveText('0')
   expect(consoleErrors).toEqual([])
 })
+
+test('chosen theme survives a real page reload', async ({ page }) => {
+  // Default theme is Roland Garros.
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'rg')
+
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByRole('button', { name: 'Wimbledon' }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'wimbledon')
+
+  await page.reload()
+
+  // Rehydrated from localStorage under its own settings key.
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'wimbledon')
+})
