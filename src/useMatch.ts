@@ -1,14 +1,28 @@
 import { useCallback, useEffect, useReducer } from 'react'
-import { applyPoint, createInitialState } from './scoring.js'
+import { applyPoint, createInitialState } from './scoring'
+import type { MatchState, PlayerIndex } from './scoring'
 
 const STORAGE_KEY = 'tennis-scoreboard:v1'
 
 // History wrapper enabling undo/redo over snapshots of match state.
-function freshHistory() {
+export interface History {
+  past: MatchState[]
+  present: MatchState
+  future: MatchState[]
+}
+
+type Action =
+  | { type: 'SCORE'; player: PlayerIndex }
+  | { type: 'UNDO' }
+  | { type: 'REDO' }
+  | { type: 'RENAME'; player: PlayerIndex; name: string }
+  | { type: 'RESET' }
+
+function freshHistory(): History {
   return { past: [], present: createInitialState(), future: [] }
 }
 
-function reducer(history, action) {
+function reducer(history: History, action: Action): History {
   const { past, present, future } = history
 
   switch (action.type) {
@@ -32,7 +46,7 @@ function reducer(history, action) {
       return { past: [...past, present], present: next, future: rest }
     }
     case 'RENAME': {
-      const players = [...present.players]
+      const players: [string, string] = [...present.players]
       players[action.player] = action.name
       // Names are cosmetic — update in place without disturbing history stacks.
       return { ...history, present: { ...present, players } }
@@ -45,7 +59,7 @@ function reducer(history, action) {
 }
 
 // Lazy initializer: hydrate from localStorage, falling back to a fresh match.
-function init() {
+function init(): History {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return freshHistory()
@@ -57,7 +71,7 @@ function init() {
       parsed.present &&
       Array.isArray(parsed.present.players)
     ) {
-      return parsed
+      return parsed as History
     }
   } catch {
     // ignore corrupt storage
@@ -76,12 +90,16 @@ export function useMatch() {
     }
   }, [history])
 
-  const scorePoint = useCallback((player) => dispatch({ type: 'SCORE', player }), [])
+  const scorePoint = useCallback(
+    (player: PlayerIndex) => dispatch({ type: 'SCORE', player }),
+    [],
+  )
   const undo = useCallback(() => dispatch({ type: 'UNDO' }), [])
   const redo = useCallback(() => dispatch({ type: 'REDO' }), [])
   const reset = useCallback(() => dispatch({ type: 'RESET' }), [])
   const editName = useCallback(
-    (player, name) => dispatch({ type: 'RENAME', player, name }),
+    (player: PlayerIndex, name: string) =>
+      dispatch({ type: 'RENAME', player, name }),
     [],
   )
 

@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import App from './App.jsx'
-import { createInitialState, applyPoint } from './scoring.js'
+import App from './App'
+import { createInitialState, applyPoint } from './scoring'
+import type { PlayerIndex } from './scoring'
 
 const STORAGE_KEY = 'tennis-scoreboard:v1'
 const SETTINGS_KEY = 'tennis-scoreboard:settings:v1'
@@ -10,16 +11,21 @@ const SETTINGS_KEY = 'tennis-scoreboard:settings:v1'
 // --- DOM helpers ------------------------------------------------------------
 
 // The "+score" button for a given player row.
-function scoreButton(container, i) {
-  return container.querySelector(`.btn-score[data-player="${i}"]`)
+function scoreButton(container: HTMLElement, i: PlayerIndex): HTMLElement {
+  return container.querySelector(`.btn-score[data-player="${i}"]`)!
 }
 
 // Read a score cell ("sets" | "games" | "points") for a player row.
-function cell(container, i, kind) {
-  return container.querySelector(`[data-player="${i}"] .score.${kind}`).textContent
+function cell(
+  container: HTMLElement,
+  i: PlayerIndex,
+  kind: 'sets' | 'games' | 'points',
+): string | null {
+  return container.querySelector(`[data-player="${i}"] .score.${kind}`)!
+    .textContent
 }
 
-function clickScore(container, i, times = 1) {
+function clickScore(container: HTMLElement, i: PlayerIndex, times = 1) {
   for (let n = 0; n < times; n++) fireEvent.click(scoreButton(container, i))
 }
 

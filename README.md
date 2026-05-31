@@ -30,37 +30,38 @@ A 2-row grid (one row per player):
 
 ## Tech stack
 
-- [React 18](https://react.dev/) + [Vite](https://vite.dev/)
+- [React 18](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) + [Vite](https://vite.dev/)
 - Plain CSS with custom-property design tokens
-- A pure, framework-agnostic scoring engine ([`src/scoring.js`](src/scoring.js))
+- A pure, framework-agnostic scoring engine ([`src/scoring.ts`](src/scoring.ts))
 
 ## Getting started
 
 ```bash
 npm install
-npm run dev      # start the dev server
-npm run build    # production build to dist/
-npm run preview  # preview the production build
+npm run dev        # start the dev server
+npm run build      # type-check (tsc --noEmit) then production build to dist/
+npm run preview    # preview the production build
+npm run typecheck  # type-check only
 ```
 
 ## Project structure
 
 ```
 src/
-  main.jsx            # React entry point
-  App.jsx             # app shell
-  scoring.js          # pure tennis scoring engine (no React)
-  useMatch.js         # state hook: undo/redo + localStorage persistence
+  main.tsx            # React entry point
+  App.tsx             # app shell
+  scoring.ts          # pure tennis scoring engine (no React) + shared domain types
+  useMatch.ts         # state hook: undo/redo + localStorage persistence
   theme.css           # design tokens — the "easily updatable" knob
   index.css           # full-viewport, no-scroll layout
   components/
-    Scoreboard.jsx    # the 2-row scoring grid
-    Controls.jsx      # +score / undo / redo buttons
+    Scoreboard.tsx    # the 2-row scoring grid
+    Controls.tsx      # +score / undo / redo buttons
 ```
 
 ## How scoring works
 
-`src/scoring.js` is a pure reducer: `applyPoint(state, playerIndex)` returns a brand-new
+`src/scoring.ts` is a pure reducer: `applyPoint(state, playerIndex)` returns a brand-new
 state with the point applied and any game/set/match transitions resolved. Because it's
 pure and immutable, undo/redo is implemented simply by snapshotting state before each
 point. The engine is configurable (sets to win, games per set, tiebreak target) via

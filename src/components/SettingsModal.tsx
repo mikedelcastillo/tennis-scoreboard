@@ -1,13 +1,25 @@
 import { useEffect } from 'react'
-import { THEMES } from '../themes.js'
+import { THEMES } from '../themes'
+
+interface Props {
+  open: boolean
+  onClose: () => void
+  theme: string
+  onSelectTheme: (id: string) => void
+}
 
 // Bottom-sheet settings pane. Themed via the same CSS tokens as the app, so it
 // recolors with whatever theme is active. Closes on backdrop tap, the close
 // icon, or Escape.
-export default function SettingsModal({ open, onClose, theme, onSelectTheme }) {
+export default function SettingsModal({
+  open,
+  onClose,
+  theme,
+  onSelectTheme,
+}: Props) {
   useEffect(() => {
     if (!open) return
-    const onKey = (e) => {
+    const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKey)

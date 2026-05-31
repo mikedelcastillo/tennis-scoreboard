@@ -1,7 +1,13 @@
-import { formatPoints } from '../scoring.js'
+import { formatPoints } from '../scoring'
+import type { MatchState, PlayerIndex } from '../scoring'
+
+interface Props {
+  state: MatchState
+  onRename: (player: PlayerIndex, name: string) => void
+}
 
 // The big 2-row grid: Player | Sets | Games | Points.
-export default function Scoreboard({ state, onRename }) {
+export default function Scoreboard({ state, onRename }: Props) {
   const points = formatPoints(state)
 
   return (
@@ -13,7 +19,7 @@ export default function Scoreboard({ state, onRename }) {
         <div className="cell center">Points</div>
       </div>
 
-      {[0, 1].map((i) => {
+      {([0, 1] as const).map((i) => {
         const isWinner = state.winner === i
         return (
           <div

@@ -2,7 +2,13 @@
 // The actual applied colors live in theme.css under [data-theme="<id>"];
 // the `swatches` here are just a small preview shown in the modal.
 
-export const THEMES = [
+export interface Theme {
+  id: string
+  label: string
+  swatches: string[]
+}
+
+export const THEMES: Theme[] = [
   { id: 'rg', label: 'Roland Garros', swatches: ['#7c3a1d', '#1f6b3d', '#f2c14e'] },
   { id: 'ao', label: 'Australian Open', swatches: ['#0a2540', '#2ea3f2', '#ffd23c'] },
   { id: 'usopen', label: 'US Open', swatches: ['#10243e', '#5aa0e6', '#ffd400'] },
@@ -13,8 +19,8 @@ export const THEMES = [
 
 export const DEFAULT_THEME = 'rg'
 
-export const THEME_IDS = THEMES.map((t) => t.id)
+export const THEME_IDS: string[] = THEMES.map((t) => t.id)
 
-export function isValidTheme(id) {
-  return THEME_IDS.includes(id)
+export function isValidTheme(id: unknown): id is string {
+  return typeof id === 'string' && THEME_IDS.includes(id)
 }

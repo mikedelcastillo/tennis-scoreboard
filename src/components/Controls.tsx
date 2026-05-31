@@ -1,5 +1,18 @@
+import type { MatchState, PlayerIndex } from '../scoring'
+
+interface Props {
+  state: MatchState
+  canUndo: boolean
+  canRedo: boolean
+  onScore: (player: PlayerIndex) => void
+  onUndo: () => void
+  onRedo: () => void
+  onReset: () => void
+  onOpenSettings: () => void
+}
+
 // Bottom controls: +score per player, then undo / redo / settings, then reset.
-function Icon({ name }) {
+function Icon({ name }: { name: string }) {
   return (
     <span className="material-symbols-outlined" aria-hidden="true">
       {name}
@@ -16,13 +29,13 @@ export default function Controls({
   onRedo,
   onReset,
   onOpenSettings,
-}) {
+}: Props) {
   const matchOver = state.winner !== null
 
   return (
     <div className="controls">
       <div className="score-buttons">
-        {[0, 1].map((i) => (
+        {([0, 1] as const).map((i) => (
           <button
             key={i}
             className="btn-score"
