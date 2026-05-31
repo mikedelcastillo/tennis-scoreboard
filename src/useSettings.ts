@@ -1,16 +1,22 @@
 import { useCallback, useEffect, useReducer } from 'react'
-import { DEFAULT_THEME, isValidTheme } from './themes.js'
+import { DEFAULT_THEME, isValidTheme } from './themes'
 
 // App settings live separately from match state: they are not part of the
 // undo/redo history and must survive a "New match", so they get their own
 // storage key rather than riding along in useMatch's history object.
 const STORAGE_KEY = 'tennis-scoreboard:settings:v1'
 
-function defaultSettings() {
+export interface Settings {
+  theme: string
+}
+
+type Action = { type: 'SET_THEME'; theme: string }
+
+function defaultSettings(): Settings {
   return { theme: DEFAULT_THEME }
 }
 
-function reducer(settings, action) {
+function reducer(settings: Settings, action: Action): Settings {
   switch (action.type) {
     case 'SET_THEME':
       if (settings.theme === action.theme) return settings
@@ -22,7 +28,7 @@ function reducer(settings, action) {
 
 // Lazy initializer: hydrate from localStorage, falling back to defaults and
 // coercing an unknown/missing theme back to the default.
-function init() {
+function init(): Settings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return defaultSettings()
@@ -40,10 +46,10 @@ function init() {
 
 // Reflect the active theme onto <html> (so CSS [data-theme] applies) and keep
 // the mobile browser chrome color in sync with the theme's background.
-function applyTheme(theme) {
+function applyTheme(theme: string): void {
   if (typeof document === 'undefined') return
   document.documentElement.dataset.theme = theme
-  const meta = document.querySelector('meta[name="theme-color"]')
+  const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
   if (meta) {
     const bg = getComputedStyle(document.documentElement)
       .getPropertyValue('--bg')
@@ -65,7 +71,7 @@ export function useSettings() {
   }, [settings])
 
   const setTheme = useCallback(
-    (theme) => dispatch({ type: 'SET_THEME', theme }),
+    (theme: string) => dispatch({ type: 'SET_THEME', theme }),
     [],
   )
 

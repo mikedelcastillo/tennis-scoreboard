@@ -5,23 +5,24 @@ import {
   applyPoint,
   formatPoints,
   isDeuce,
-} from './scoring.js'
+} from './scoring'
+import type { MatchState, PlayerIndex } from './scoring'
 
 // --- helpers ----------------------------------------------------------------
 
 // Play a sequence of points, where each entry is the player index (0 | 1).
-function play(state, sequence) {
+function play(state: MatchState, sequence: PlayerIndex[]): MatchState {
   return sequence.reduce((s, i) => applyPoint(s, i), state)
 }
 
 // Award player `i` exactly `n` points in a row.
-function score(state, i, n) {
+function score(state: MatchState, i: PlayerIndex, n: number): MatchState {
   return play(state, Array(n).fill(i))
 }
 
 // Win `n` complete games for player `i` (4 straight points each), assuming the
 // opponent has < 3 points so each game is a clean 4-0.
-function winGames(state, i, n) {
+function winGames(state: MatchState, i: PlayerIndex, n: number): MatchState {
   let s = state
   for (let g = 0; g < n; g++) s = score(s, i, 4)
   return s
@@ -29,7 +30,7 @@ function winGames(state, i, n) {
 
 // Drive a set to 6-6 (and thus into a tiebreak) by winning games alternately,
 // so neither player ever leads by the two games needed to take the set outright.
-function toSixAll(state) {
+function toSixAll(state: MatchState): MatchState {
   let s = state
   for (let g = 0; g < 6; g++) {
     s = score(s, 0, 4)
@@ -51,7 +52,7 @@ describe('createInitialState', () => {
   })
 
   it('copies players/config so callers cannot mutate internal state', () => {
-    const players = ['A', 'B']
+    const players: [string, string] = ['A', 'B']
     const config = { ...DEFAULT_CONFIG }
     const s = createInitialState(players, config)
     players[0] = 'mutated'

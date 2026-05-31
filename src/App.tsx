@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import Controls from './components/Controls.jsx'
-import Scoreboard from './components/Scoreboard.jsx'
-import SettingsModal from './components/SettingsModal.jsx'
-import { useMatch } from './useMatch.js'
-import { useSettings } from './useSettings.js'
+import Controls from './components/Controls'
+import Scoreboard from './components/Scoreboard'
+import SettingsModal from './components/SettingsModal'
+import { useMatch } from './useMatch'
+import { useSettings } from './useSettings'
 
 export default function App() {
   const {

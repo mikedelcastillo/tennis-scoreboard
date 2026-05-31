@@ -1,13 +1,16 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
 // These cover the cases a real browser is the only honest way to test:
 // a genuine page reload + real localStorage round-trip, and the actual
 // white-screen failure mode of an uncaught render error (there is no error
 // boundary, so a throw blanks the whole page).
 
-const points = (page, i) => page.locator(`[data-player="${i}"] .score.points`)
-const games = (page, i) => page.locator(`[data-player="${i}"] .score.games`)
-const scoreBtn = (page, i) => page.locator(`.btn-score[data-player="${i}"]`)
+const points = (page: Page, i: number) =>
+  page.locator(`[data-player="${i}"] .score.points`)
+const games = (page: Page, i: number) =>
+  page.locator(`[data-player="${i}"] .score.games`)
+const scoreBtn = (page: Page, i: number) =>
+  page.locator(`.btn-score[data-player="${i}"]`)
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
@@ -28,7 +31,7 @@ test('score survives a real page reload', async ({ page }) => {
 })
 
 test('reaching a game point does not blank the screen', async ({ page }) => {
-  const consoleErrors = []
+  const consoleErrors: string[] = []
   page.on('pageerror', (err) => consoleErrors.push(err.message))
 
   // Love → 15 → 30 → 40 → game: the path that used to throw and unmount.

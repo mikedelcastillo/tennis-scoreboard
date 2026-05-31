@@ -1,7 +1,27 @@
 // Pure tennis scoring engine — no React, no side effects.
 // `applyPoint` always returns a brand-new state object (safe to snapshot for undo/redo).
 
-export const DEFAULT_CONFIG = {
+export type PlayerIndex = 0 | 1
+
+export interface MatchConfig {
+  setsToWin: number // best-of-3 → 2
+  gamesToWinSet: number
+  tiebreakTo: number
+  winBy: number
+}
+
+export interface MatchState {
+  players: [string, string]
+  completedSets: Array<[number, number]> // [gamesP0, gamesP1] for finished sets
+  setsWon: [number, number]
+  games: [number, number] // games in the current set
+  points: [number, number] // raw point counts in the current game / tiebreak
+  inTiebreak: boolean
+  winner: PlayerIndex | null
+  config: MatchConfig
+}
+
+export const DEFAULT_CONFIG: MatchConfig = {
   setsToWin: 2, // best-of-3
   gamesToWinSet: 6,
   tiebreakTo: 7,
@@ -9,11 +29,11 @@ export const DEFAULT_CONFIG = {
 }
 
 export function createInitialState(
-  players = ['Player 1', 'Player 2'],
-  config = DEFAULT_CONFIG,
-) {
+  players: readonly [string, string] = ['Player 1', 'Player 2'],
+  config: MatchConfig = DEFAULT_CONFIG,
+): MatchState {
   return {
-    players: [...players],
+    players: [players[0], players[1]],
     completedSets: [], // array of [gamesP0, gamesP1] for finished sets
     setsWon: [0, 0],
     games: [0, 0], // games in the current set
@@ -24,13 +44,13 @@ export function createInitialState(
   }
 }
 
-const other = (i) => (i === 0 ? 1 : 0)
+const other = (i: PlayerIndex): PlayerIndex => (i === 0 ? 1 : 0)
 
 // Map a raw point count (0,1,2,3) to the classic tennis label.
 const POINT_LABELS = ['0', '15', '30', '40']
 
 // Display strings for the current game, accounting for deuce / advantage.
-export function formatPoints(state) {
+export function formatPoints(state: MatchState): [string, string] {
   const { points, inTiebreak } = state
 
   if (inTiebreak) {
@@ -50,7 +70,7 @@ export function formatPoints(state) {
 }
 
 // True when the current game/tiebreak is "deuce" (both 40+ and level).
-export function isDeuce(state) {
+export function isDeuce(state: MatchState): boolean {
   return (
     !state.inTiebreak &&
     state.points[0] >= 3 &&
@@ -63,11 +83,18 @@ export function isDeuce(state) {
 
 // Record a finished set for player `i` and advance match/set state.
 // `finalGames` is the [g0, g1] tally to store for display.
-function recordSet(state, i, finalGames) {
-  const completedSets = [...state.completedSets, finalGames]
-  const setsWon = [...state.setsWon]
+function recordSet(
+  state: MatchState,
+  i: PlayerIndex,
+  finalGames: [number, number],
+): MatchState {
+  const completedSets: Array<[number, number]> = [
+    ...state.completedSets,
+    finalGames,
+  ]
+  const setsWon: [number, number] = [...state.setsWon]
   setsWon[i] += 1
-  const next = {
+  const next: MatchState = {
     ...state,
     completedSets,
     setsWon,
@@ -82,13 +109,13 @@ function recordSet(state, i, finalGames) {
 }
 
 // Award player `i` a game, then resolve set/tiebreak transitions.
-function winGame(state, i) {
+function winGame(state: MatchState, i: PlayerIndex): MatchState {
   const { gamesToWinSet, winBy } = state.config
-  const games = [...state.games]
+  const games: [number, number] = [...state.games]
   games[i] += 1
   const opp = other(i)
 
-  const base = { ...state, games, points: [0, 0], inTiebreak: false }
+  const base: MatchState = { ...state, games, points: [0, 0], inTiebreak: false }
 
   // Set won outright (e.g. 6-4, 7-5).
   if (games[i] >= gamesToWinSet && games[i] - games[opp] >= winBy) {
@@ -106,20 +133,20 @@ function winGame(state, i) {
 // --- public reducer ---------------------------------------------------------
 
 // Award one point to player `i`. Returns a new state (no-op once there is a winner).
-export function applyPoint(state, i) {
+export function applyPoint(state: MatchState, i: PlayerIndex): MatchState {
   if (state.winner !== null) return state
 
   const { winBy } = state.config
-  const points = [...state.points]
+  const points: [number, number] = [...state.points]
   points[i] += 1
   const opp = other(i)
-  const next = { ...state, points }
+  const next: MatchState = { ...state, points }
 
   if (state.inTiebreak) {
     const { tiebreakTo } = state.config
     if (points[i] >= tiebreakTo && points[i] - points[opp] >= winBy) {
       // Tiebreak winner takes the set 7-6.
-      const games = [...state.games]
+      const games: [number, number] = [...state.games]
       games[i] += 1 // -> 7-6
       return recordSet(next, i, [games[0], games[1]])
     }
