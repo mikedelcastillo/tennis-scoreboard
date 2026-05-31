@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useReducer } from 'react'
 import { DEFAULT_THEME, isValidTheme } from './themes'
+import { DEFAULT_CONFIG } from './scoring'
+import type { MatchConfig } from './scoring'
 
 // App settings live separately from match state: they are not part of the
 // undo/redo history and must survive a "New match", so they get their own
@@ -8,12 +10,15 @@ const STORAGE_KEY = 'tennis-scoreboard:settings:v1'
 
 export interface Settings {
   theme: string
+  scoring: MatchConfig
 }
 
-type Action = { type: 'SET_THEME'; theme: string }
+type Action =
+  | { type: 'SET_THEME'; theme: string }
+  | { type: 'SET_SCORING'; scoring: MatchConfig }
 
 function defaultSettings(): Settings {
-  return { theme: DEFAULT_THEME }
+  return { theme: DEFAULT_THEME, scoring: DEFAULT_CONFIG }
 }
 
 function reducer(settings: Settings, action: Action): Settings {
@@ -21,13 +26,16 @@ function reducer(settings: Settings, action: Action): Settings {
     case 'SET_THEME':
       if (settings.theme === action.theme) return settings
       return { ...settings, theme: action.theme }
+    case 'SET_SCORING':
+      return { ...settings, scoring: action.scoring }
     default:
       return settings
   }
 }
 
 // Lazy initializer: hydrate from localStorage, falling back to defaults and
-// coercing an unknown/missing theme back to the default.
+// coercing an unknown/missing theme back to the default. Scoring is merged onto
+// DEFAULT_CONFIG so older stored blobs (and any future field) stay valid.
 function init(): Settings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -36,6 +44,7 @@ function init(): Settings {
     if (parsed && typeof parsed === 'object') {
       return {
         theme: isValidTheme(parsed.theme) ? parsed.theme : DEFAULT_THEME,
+        scoring: { ...DEFAULT_CONFIG, ...(parsed.scoring ?? {}) },
       }
     }
   } catch {
@@ -74,6 +83,10 @@ export function useSettings() {
     (theme: string) => dispatch({ type: 'SET_THEME', theme }),
     [],
   )
+  const setScoring = useCallback(
+    (scoring: MatchConfig) => dispatch({ type: 'SET_SCORING', scoring }),
+    [],
+  )
 
-  return { settings, setTheme }
+  return { settings, setTheme, setScoring }
 }

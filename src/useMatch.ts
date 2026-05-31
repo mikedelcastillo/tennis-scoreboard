@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useReducer } from 'react'
-import { applyPoint, createInitialState } from './scoring'
-import type { MatchState, PlayerIndex } from './scoring'
+import { useCallback, useEffect, useReducer, useRef } from 'react'
+import { applyPoint, createInitialState, DEFAULT_CONFIG } from './scoring'
+import type { MatchConfig, MatchState, PlayerIndex } from './scoring'
 
-const STORAGE_KEY = 'tennis-scoreboard:v1'
+// Bumped to v2: the persisted state shape changed (granular MatchConfig fields
+// and a `'draw'` match outcome). Old v1 blobs are simply ignored.
+const STORAGE_KEY = 'tennis-scoreboard:v2'
 
 // History wrapper enabling undo/redo over snapshots of match state.
 export interface History {
@@ -16,10 +18,10 @@ type Action =
   | { type: 'UNDO' }
   | { type: 'REDO' }
   | { type: 'RENAME'; player: PlayerIndex; name: string }
-  | { type: 'RESET' }
+  | { type: 'RESET'; config: MatchConfig }
 
-function freshHistory(): History {
-  return { past: [], present: createInitialState(), future: [] }
+function freshHistory(config: MatchConfig): History {
+  return { past: [], present: createInitialState(undefined, config), future: [] }
 }
 
 function reducer(history: History, action: Action): History {
@@ -52,17 +54,18 @@ function reducer(history: History, action: Action): History {
       return { ...history, present: { ...present, players } }
     }
     case 'RESET':
-      return freshHistory()
+      return freshHistory(action.config)
     default:
       return history
   }
 }
 
-// Lazy initializer: hydrate from localStorage, falling back to a fresh match.
-function init(): History {
+// Lazy initializer: hydrate an in-progress match from localStorage (keeping its
+// own embedded config), falling back to a fresh match using the current config.
+function init(config: MatchConfig): History {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return freshHistory()
+    if (!raw) return freshHistory(config)
     const parsed = JSON.parse(raw)
     if (
       parsed &&
@@ -76,11 +79,17 @@ function init(): History {
   } catch {
     // ignore corrupt storage
   }
-  return freshHistory()
+  return freshHistory(config)
 }
 
-export function useMatch() {
-  const [history, dispatch] = useReducer(reducer, undefined, init)
+// `config` is the scoring config used for the *next* new match. A running match
+// keeps the config it was created with; changes only apply on RESET.
+export function useMatch(config: MatchConfig = DEFAULT_CONFIG) {
+  const [history, dispatch] = useReducer(reducer, config, init)
+
+  // Keep the latest config available to reset() without re-creating the match.
+  const configRef = useRef(config)
+  configRef.current = config
 
   useEffect(() => {
     try {
@@ -96,7 +105,10 @@ export function useMatch() {
   )
   const undo = useCallback(() => dispatch({ type: 'UNDO' }), [])
   const redo = useCallback(() => dispatch({ type: 'REDO' }), [])
-  const reset = useCallback(() => dispatch({ type: 'RESET' }), [])
+  const reset = useCallback(
+    () => dispatch({ type: 'RESET', config: configRef.current }),
+    [],
+  )
   const editName = useCallback(
     (player: PlayerIndex, name: string) =>
       dispatch({ type: 'RENAME', player, name }),

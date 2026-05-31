@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import {
   DEFAULT_CONFIG,
+  SCORING_PRESETS,
   createInitialState,
   applyPoint,
   formatPoints,
   isDeuce,
 } from './scoring'
-import type { MatchState, PlayerIndex } from './scoring'
+import type { MatchConfig, MatchState, PlayerIndex } from './scoring'
 
 // --- helpers ----------------------------------------------------------------
 
@@ -56,9 +57,9 @@ describe('createInitialState', () => {
     const config = { ...DEFAULT_CONFIG }
     const s = createInitialState(players, config)
     players[0] = 'mutated'
-    config.winBy = 99
+    config.gamesToWinSet = 99
     expect(s.players[0]).toBe('A')
-    expect(s.config.winBy).toBe(2)
+    expect(s.config.gamesToWinSet).toBe(6)
   })
 })
 
@@ -212,5 +213,166 @@ describe('immutability', () => {
     const next = applyPoint(s, 0)
     expect(next).not.toBe(s)
     expect(JSON.stringify(s)).toBe(snapshot) // original untouched
+  })
+})
+
+// --- customizable scoring config ------------------------------------------
+
+const cfg = (over: Partial<MatchConfig>): MatchConfig => ({
+  ...DEFAULT_CONFIG,
+  ...over,
+})
+
+describe('match length (best of)', () => {
+  it('best of 1 ends after a single set', () => {
+    let s = createInitialState(undefined, cfg({ setsToWin: 1 }))
+    s = winGames(s, 0, 6)
+    expect(s.winner).toBe(0)
+  })
+
+  it('best of 5 needs three sets', () => {
+    let s = createInitialState(undefined, cfg({ setsToWin: 3 }))
+    s = winGames(s, 0, 6)
+    s = winGames(s, 0, 6)
+    expect(s.winner).toBeNull()
+    s = winGames(s, 0, 6)
+    expect(s.winner).toBe(0)
+  })
+
+  it('presets carry the expected set counts', () => {
+    expect(SCORING_PRESETS.find((p) => p.id === 'bo3')?.config.setsToWin).toBe(2)
+    expect(SCORING_PRESETS.find((p) => p.id === 'bo5')?.config.setsToWin).toBe(3)
+  })
+})
+
+describe('games per set', () => {
+  it('wins a 4-game set at 4-1', () => {
+    let s = createInitialState(undefined, cfg({ setsToWin: 1, gamesToWinSet: 4 }))
+    s = winGames(s, 1, 1) // 0-1
+    s = winGames(s, 0, 4) // 4-1
+    expect(s.completedSets).toEqual([[4, 1]])
+    expect(s.winner).toBe(0)
+  })
+
+  it('an 8-game set is not won until 8 games', () => {
+    let s = createInitialState(undefined, cfg({ setsToWin: 1, gamesToWinSet: 8 }))
+    s = winGames(s, 0, 7) // 7-0
+    expect(s.setsWon).toEqual([0, 0])
+    s = winGames(s, 0, 1) // 8-0
+    expect(s.winner).toBe(0)
+  })
+})
+
+describe('slide-2 for games', () => {
+  it('off: a set is won outright at the target (6-5)', () => {
+    let s = createInitialState(undefined, cfg({ setsToWin: 1, gamesSlideTwo: false }))
+    for (let g = 0; g < 5; g++) {
+      s = score(s, 0, 4)
+      s = score(s, 1, 4)
+    }
+    expect(s.games).toEqual([5, 5])
+    s = score(s, 0, 4) // 6-5
+    expect(s.winner).toBe(0)
+    expect(s.completedSets).toEqual([[6, 5]])
+  })
+})
+
+describe('tiebreak configuration', () => {
+  it('disabled: 6-6 becomes an advantage set (8-6)', () => {
+    let s = createInitialState(
+      undefined,
+      cfg({ setsToWin: 1, tiebreakEnabled: false, tiebreakInLastSet: false }),
+    )
+    s = toSixAll(s)
+    expect(s.inTiebreak).toBe(false)
+    expect(s.games).toEqual([6, 6])
+    s = score(s, 0, 4) // 7-6, not by two
+    expect(s.winner).toBeNull()
+    s = score(s, 0, 4) // 8-6
+    expect(s.winner).toBe(0)
+    expect(s.completedSets).toEqual([[8, 6]])
+  })
+
+  it('no win-by-two when tiebreakSlideTwo is off (first to 7)', () => {
+    let s = createInitialState(undefined, cfg({ setsToWin: 1, tiebreakSlideTwo: false }))
+    s = toSixAll(s)
+    s = play(s, [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]) // 6-6 in TB
+    s = applyPoint(s, 0) // 7-6 wins (no win-by-two)
+    expect(s.winner).toBe(0)
+    expect(s.completedSets).toEqual([[7, 6]])
+  })
+
+  it('tiebreakInLastSet only affects the deciding set', () => {
+    // Best of 3, no tiebreak in the last set: set 3 is an advantage set.
+    let s = createInitialState(
+      undefined,
+      cfg({ setsToWin: 2, tiebreakInLastSet: false }),
+    )
+    s = winGames(s, 0, 6) // set 1 to P0
+    s = winGames(s, 1, 6) // set 2 to P1 → deciding set
+    expect(s.setsWon).toEqual([1, 1])
+    s = toSixAll(s) // 6-6 in the deciding set
+    expect(s.inTiebreak).toBe(false) // advantage set, no tiebreak
+  })
+})
+
+describe('deuce policies', () => {
+  it('advantage: 40-40 → AD → game needs win-by-two', () => {
+    let s = createInitialState(undefined, cfg({ deuce: 'advantage' }))
+    s = play(s, [0, 0, 0, 1, 1, 1]) // 40-40
+    s = applyPoint(s, 0) // AD
+    expect(s.games).toEqual([0, 0])
+    s = applyPoint(s, 1) // back to deuce
+    expect(s.games).toEqual([0, 0])
+    s = applyPoint(s, 0) // AD
+    s = applyPoint(s, 0) // game
+    expect(s.games).toEqual([1, 0])
+  })
+
+  it('no-deuce: 40-40 is decided by the next point', () => {
+    let s = createInitialState(undefined, cfg({ deuce: 'no-deuce' }))
+    s = play(s, [0, 0, 0, 1, 1, 1]) // 40-40 (3-3)
+    expect(isDeuce(s)).toBe(true)
+    s = applyPoint(s, 0) // 4-3 wins immediately
+    expect(s.games).toEqual([1, 0])
+  })
+
+  it('sudden-death-2nd-deuce: one ad, then the next point wins', () => {
+    let s = createInitialState(undefined, cfg({ deuce: 'sudden-death-2nd-deuce' }))
+    s = play(s, [0, 0, 0, 1, 1, 1]) // 40-40 (3-3)
+    s = applyPoint(s, 0) // AD (4-3) — no win yet
+    expect(s.games).toEqual([0, 0])
+    s = applyPoint(s, 1) // 4-4, second deuce
+    expect(s.games).toEqual([0, 0])
+    s = applyPoint(s, 1) // 4-5 wins by one
+    expect(s.games).toEqual([0, 1])
+  })
+})
+
+describe('barangay draw', () => {
+  it('single 8-game set is drawn at 7-7', () => {
+    let s = createInitialState(
+      undefined,
+      cfg({ setsToWin: 1, gamesToWinSet: 8, barangayDraw: true }),
+    )
+    for (let g = 0; g < 7; g++) {
+      s = score(s, 0, 4)
+      s = score(s, 1, 4)
+    }
+    expect(s.games).toEqual([7, 7])
+    expect(s.winner).toBe('draw')
+  })
+
+  it('is ignored for multi-set matches', () => {
+    let s = createInitialState(
+      undefined,
+      cfg({ setsToWin: 2, gamesToWinSet: 8, barangayDraw: true }),
+    )
+    for (let g = 0; g < 7; g++) {
+      s = score(s, 0, 4)
+      s = score(s, 1, 4)
+    }
+    expect(s.games).toEqual([7, 7])
+    expect(s.winner).toBeNull() // plays on (8-x), no draw
   })
 })

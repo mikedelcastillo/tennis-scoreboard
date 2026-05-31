@@ -3,11 +3,26 @@
 
 export type PlayerIndex = 0 | 1
 
+// How a game resolves once both players reach 40 (3 points each):
+//  - advantage:            classic, win by two points forever.
+//  - sudden-death-2nd-deuce: one advantage is allowed; if the game returns to
+//                          deuce (both reach 4) the very next point wins.
+//  - no-deuce:             no advantage at all — 40-40 is decided by one point.
+export type DeucePolicy = 'advantage' | 'sudden-death-2nd-deuce' | 'no-deuce'
+
+// A finished match is won by a player, or drawn (barangay single-set draw).
+export type MatchOutcome = PlayerIndex | 'draw'
+
 export interface MatchConfig {
-  setsToWin: number // best-of-3 → 2
-  gamesToWinSet: number
-  tiebreakTo: number
-  winBy: number
+  setsToWin: number // Best of 1/3/5 → 1/2/3
+  gamesToWinSet: number // games to win a set (4, 6, 8, 10, …)
+  gamesSlideTwo: boolean // win a set by two games (else first-to-target)
+  tiebreakEnabled: boolean // play a tiebreak at games target-all (normal sets)
+  tiebreakInLastSet: boolean // play a tiebreak in the deciding set
+  tiebreakTo: number // points to win a tiebreak (7, 10, …)
+  tiebreakSlideTwo: boolean // win the tiebreak by two points (else first-to-target)
+  deuce: DeucePolicy // how a game resolves at deuce
+  barangayDraw: boolean // single-set only: draw at (gamesToWinSet − 1) all
 }
 
 export interface MatchState {
@@ -17,16 +32,35 @@ export interface MatchState {
   games: [number, number] // games in the current set
   points: [number, number] // raw point counts in the current game / tiebreak
   inTiebreak: boolean
-  winner: PlayerIndex | null
+  winner: MatchOutcome | null
   config: MatchConfig
 }
 
 export const DEFAULT_CONFIG: MatchConfig = {
   setsToWin: 2, // best-of-3
   gamesToWinSet: 6,
+  gamesSlideTwo: true,
+  tiebreakEnabled: true,
+  tiebreakInLastSet: true,
   tiebreakTo: 7,
-  winBy: 2,
+  tiebreakSlideTwo: true,
+  deuce: 'advantage',
+  barangayDraw: false,
 }
+
+// Quick-pick formats for the settings pane. Both are standard tennis (6-game
+// sets, slide-2, tiebreak to 7 including the last set, advantage deuce); they
+// differ only in match length.
+export interface ScoringPreset {
+  id: string
+  label: string
+  config: MatchConfig
+}
+
+export const SCORING_PRESETS: ScoringPreset[] = [
+  { id: 'bo3', label: 'Best of 3', config: { ...DEFAULT_CONFIG, setsToWin: 2 } },
+  { id: 'bo5', label: 'Best of 5', config: { ...DEFAULT_CONFIG, setsToWin: 3 } },
+]
 
 export function createInitialState(
   players: readonly [string, string] = ['Player 1', 'Player 2'],
@@ -110,20 +144,43 @@ function recordSet(
 
 // Award player `i` a game, then resolve set/tiebreak transitions.
 function winGame(state: MatchState, i: PlayerIndex): MatchState {
-  const { gamesToWinSet, winBy } = state.config
+  const {
+    setsToWin,
+    gamesToWinSet,
+    gamesSlideTwo,
+    tiebreakEnabled,
+    tiebreakInLastSet,
+    barangayDraw,
+  } = state.config
   const games: [number, number] = [...state.games]
   games[i] += 1
   const opp = other(i)
+  const a = games[i]
+  const b = games[opp]
 
   const base: MatchState = { ...state, games, points: [0, 0], inTiebreak: false }
 
-  // Set won outright (e.g. 6-4, 7-5).
-  if (games[i] >= gamesToWinSet && games[i] - games[opp] >= winBy) {
+  // The deciding set (both one set from the match) can use a different tiebreak
+  // rule; a single-set match just follows `tiebreakEnabled`.
+  const isLastPossibleSet =
+    setsToWin > 1 &&
+    state.setsWon[0] === setsToWin - 1 &&
+    state.setsWon[1] === setsToWin - 1
+  const useTiebreak = isLastPossibleSet ? tiebreakInLastSet : tiebreakEnabled
+  const gameWinBy = gamesSlideTwo ? 2 : 1
+
+  // Set won outright (e.g. 6-4, 7-5; or first-to-target when slide-2 is off).
+  if (a >= gamesToWinSet && a - b >= gameWinBy) {
     return recordSet(base, i, [games[0], games[1]])
   }
 
-  // 6-6 → start a tiebreak.
-  if (games[0] === gamesToWinSet && games[1] === gamesToWinSet) {
+  // Barangay draw (single set only): tied at (target − 1) all → drawn match.
+  if (barangayDraw && setsToWin === 1 && a === gamesToWinSet - 1 && b === gamesToWinSet - 1) {
+    return { ...base, winner: 'draw' }
+  }
+
+  // Target-all (e.g. 6-6) → start a tiebreak.
+  if (useTiebreak && a === gamesToWinSet && b === gamesToWinSet) {
     return { ...base, inTiebreak: true, points: [0, 0] }
   }
 
@@ -136,15 +193,17 @@ function winGame(state: MatchState, i: PlayerIndex): MatchState {
 export function applyPoint(state: MatchState, i: PlayerIndex): MatchState {
   if (state.winner !== null) return state
 
-  const { winBy } = state.config
   const points: [number, number] = [...state.points]
   points[i] += 1
   const opp = other(i)
+  const a = points[i]
+  const b = points[opp]
   const next: MatchState = { ...state, points }
 
   if (state.inTiebreak) {
-    const { tiebreakTo } = state.config
-    if (points[i] >= tiebreakTo && points[i] - points[opp] >= winBy) {
+    const { tiebreakTo, tiebreakSlideTwo } = state.config
+    const tbWinBy = tiebreakSlideTwo ? 2 : 1
+    if (a >= tiebreakTo && a - b >= tbWinBy) {
       // Tiebreak winner takes the set 7-6.
       const games: [number, number] = [...state.games]
       games[i] += 1 // -> 7-6
@@ -153,10 +212,27 @@ export function applyPoint(state: MatchState, i: PlayerIndex): MatchState {
     return next
   }
 
-  // Regular game: need >= 4 points and a 2-point lead.
-  if (points[i] >= 4 && points[i] - points[opp] >= winBy) {
+  // Regular game. A game always needs at least 4 points; how a tie at 40
+  // resolves depends on the configured deuce policy.
+  if (a >= 4 && wonGamePoint(a, b, state.config.deuce)) {
     return winGame(next, i)
   }
 
   return next
+}
+
+// Given the scorer is at `a` points and the opponent at `b` (with a >= 4),
+// decide whether the game is won under the deuce policy.
+function wonGamePoint(a: number, b: number, deuce: DeucePolicy): boolean {
+  switch (deuce) {
+    case 'no-deuce':
+      // No advantage: 40-40 is decided by the next point.
+      return a - b >= 1
+    case 'sudden-death-2nd-deuce':
+      // One advantage allowed; once both reach 4 (2nd deuce) the next point wins.
+      return a - b >= 2 || (b >= 4 && a - b >= 1)
+    case 'advantage':
+    default:
+      return a - b >= 2
+  }
 }

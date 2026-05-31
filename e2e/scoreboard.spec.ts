@@ -57,3 +57,18 @@ test('chosen theme survives a real page reload', async ({ page }) => {
   // Rehydrated from localStorage under its own settings key.
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'wimbledon')
 })
+
+test('scoring settings survive a real page reload', async ({ page }) => {
+  await page.getByRole('button', { name: 'Settings' }).click()
+  const bestOf1 = page.getByRole('button', { name: '1', exact: true })
+  await bestOf1.click()
+  await expect(bestOf1).toHaveAttribute('aria-pressed', 'true')
+
+  await page.reload()
+
+  // Reopen settings: the chosen format was rehydrated from localStorage.
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await expect(
+    page.getByRole('button', { name: '1', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true')
+})
